@@ -6,13 +6,14 @@ import (
 )
 
 type meshLoader struct {
-	mesh *Mesh
+	mesh     *Mesh
 	vertices VertexList
-	tokens <-chan Token
-	token Token
+	tokens   <-chan Token
+	token    Token
 }
 
 type MeshLoadError string
+
 func NewMeshLoadError(val interface{}) MeshLoadError {
 	return MeshLoadError(fmt.Sprintf("%v", val))
 }
@@ -50,9 +51,11 @@ func (m *meshLoader) readNumberLit(t *Token) (num float64) {
 	}
 	t = &m.token
 	m.ensureKind(t, NumberLit)
-	
+
 	num, err := strconv.ParseFloat(t.Val, 64)
-	if err != nil { panic(err) }
+	if err != nil {
+		panic(err)
+	}
 	return num
 }
 
@@ -63,52 +66,56 @@ func (m *meshLoader) Load() (err error) {
 			err = NewMeshLoadError(p)
 		}
 	}()
-	
+
 	if !m.read() {
 		panic("Empty token stream")
 	}
-	
+
 	m.vertices = make(VertexList, 0)
 	m.mesh = &Mesh{}
 	m.mesh.Faces = make([]Face, 0)
-	
+
 	for {
 		switch m.token.Kind {
-			case VertexDecl:
-				v := Vertex{}
-				v.X = float32(m.readNumberLit(nil))
-				v.Y = float32(m.readNumberLit(nil))
-				v.Z = float32(m.readNumberLit(nil))
-				m.vertices = append(m.vertices, v)
-			case FaceDecl:
-				f := Face{}
-				f.Vertices = make(VertexList, 0)
-				faceDef := true
-				for faceDef {
-					if !m.read() { break }
-					switch m.token.Kind {
-						case NumberLit:
-							idx := int32(m.readNumberLit(&m.token))
-							// copy the vertices from the vertex list to the face
-							f.Vertices = append(f.Vertices, m.vertices[idx-1])
-						default:
-							// face definition completed
-							faceDef = false
-					}
+		case VertexDecl:
+			v := Vertex{}
+			v.X = float32(m.readNumberLit(nil))
+			v.Y = float32(m.readNumberLit(nil))
+			v.Z = float32(m.readNumberLit(nil))
+			m.vertices = append(m.vertices, v)
+		case FaceDecl:
+			f := Face{}
+			f.Vertices = make(VertexList, 0)
+			faceDef := true
+			for faceDef {
+				if !m.read() {
+					break
 				}
-				m.mesh.Faces = append(m.mesh.Faces, f)
-				// keep the last token and continue from here
-				// prevent the final call to m.read
-				// since the previous for consumed all tokens from the channel
-				continue
-			case Eof:
-				break
-			default:
-				panic(fmt.Sprintf("Unexpected token (%v) expecting: %v", &m.token, fmt.Sprintf("[%v]", []Kind{VertexDecl, FaceDecl, Eof})))
+				switch m.token.Kind {
+				case NumberLit:
+					idx := int32(m.readNumberLit(&m.token))
+					// copy the vertices from the vertex list to the face
+					f.Vertices = append(f.Vertices, m.vertices[idx-1])
+				default:
+					// face definition completed
+					faceDef = false
+				}
+			}
+			m.mesh.Faces = append(m.mesh.Faces, f)
+			// keep the last token and continue from here
+			// prevent the final call to m.read
+			// since the previous for consumed all tokens from the channel
+			continue
+		case Eof:
+			break
+		default:
+			panic(fmt.Sprintf("Unexpected token (%v) expecting: %v", &m.token, fmt.Sprintf("[%v]", []Kind{VertexDecl, FaceDecl, Eof})))
 		}
-		
+
 		// advance to the next token
-		if !m.read() { break }
+		if !m.read() {
+			break
+		}
 	}
 
 	return

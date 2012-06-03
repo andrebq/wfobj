@@ -1,11 +1,11 @@
 package wfobj
 
 import (
-	"os"
-	"io/ioutil"
 	"fmt"
-	"unicode/utf8"
+	"io/ioutil"
+	"os"
 	"strings"
+	"unicode/utf8"
 )
 
 type Kind int
@@ -17,21 +17,21 @@ const (
 	Eof
 )
 
-var kindNames = map[Kind]string {
-		VertexDecl: "VECTOR_DECLARATION",
-		FaceDecl: "FACE_DECLARATION",
-		NumberLit: "NUMBER_LITERAL",
-		Eof: "EOF",
-	}
+var kindNames = map[Kind]string{
+	VertexDecl: "VECTOR_DECLARATION",
+	FaceDecl:   "FACE_DECLARATION",
+	NumberLit:  "NUMBER_LITERAL",
+	Eof:        "EOF",
+}
 
 func (k Kind) String() string {
 	return kindNames[k]
 }
 
 type Token struct {
-	Val	string
+	Val  string
 	Kind Kind
-	Pos	Position
+	Pos  Position
 }
 
 func (t *Token) String() string {
@@ -56,11 +56,11 @@ type Debug interface {
 
 type Parser struct {
 	Contents string
-	VList VertexList
-	Tokens	chan Token
-	Debug Debug
-	sz int
-	C rune
+	VList    VertexList
+	Tokens   chan Token
+	Debug    Debug
+	sz       int
+	C        rune
 	// position in the stream
 	pos int
 	// current line position
@@ -73,7 +73,7 @@ type Parser struct {
 type ParseError string
 
 // Return the messsage with the current position of the parser
-func NewParseError(p *Parser, msg string) ParseError{
+func NewParseError(p *Parser, msg string) ParseError {
 	return ParseError(fmt.Sprintf("%v %v", msg, p.cPos))
 }
 
@@ -88,7 +88,7 @@ func NewParserFromFile(fileName string) (p *Parser, err error) {
 		return
 	}
 	defer file.Close()
-	
+
 	buff, err := ioutil.ReadAll(file)
 	if err != nil {
 		return
@@ -100,7 +100,7 @@ func NewParserFromFile(fileName string) (p *Parser, err error) {
 // Parse the contents of the string variable
 func NewLiteralParser(literal string) (p *Parser) {
 	literal = strings.Replace(literal, "\r\n", "\n", -1)
-	p = &Parser{literal,make(VertexList,0), make(chan Token,0), nil, 0, 0, 0, Position{1,1}, Position{1,0}}
+	p = &Parser{literal, make(VertexList, 0), make(chan Token, 0), nil, 0, 0, 0, Position{1, 1}, Position{1, 0}}
 	return
 }
 
@@ -112,32 +112,32 @@ func (p *Parser) Parse() (err error) {
 			err = NewParseError(p, fmt.Sprintf("%v", val))
 		}
 	}()
-	
+
 	for p.Next() {
-		switch(p.C) {
-			case 'v':
-				p.Emit("", VertexDecl)
-				p.ReadNumberList()
-			case 'f':
-				p.Emit("", FaceDecl)
-				p.ReadNumberList()
-			case '#':
-				// comment
-				p.DiscardUntil("\n")
-				
-			case utf8.RuneError:
-				panic(fmt.Sprintf("Invalid utf-8 code @ %v", p.pos))
+		switch p.C {
+		case 'v':
+			p.Emit("", VertexDecl)
+			p.ReadNumberList()
+		case 'f':
+			p.Emit("", FaceDecl)
+			p.ReadNumberList()
+		case '#':
+			// comment
+			p.DiscardUntil("\n")
+
+		case utf8.RuneError:
+			panic(fmt.Sprintf("Invalid utf-8 code @ %v", p.pos))
 		}
 	}
 	p.Emit("", Eof)
-	
+
 	return
 }
 
 // Emit a token
 func (p *Parser) Emit(val string, kind Kind) {
 	t := Token{val, kind, p.cPos}
-	if p.Debug != nil{
+	if p.Debug != nil {
 		p.Debug.Emit(&t)
 	}
 	p.Tokens <- t
@@ -145,7 +145,8 @@ func (p *Parser) Emit(val string, kind Kind) {
 
 // Discard all chars from the stream that match at least one of the chars passed
 func (p *Parser) Discard(chars string) {
-	for p.NextIf(chars) {	}
+	for p.NextIf(chars) {
+	}
 }
 
 // Discard all the runes until the one of the chars is found
@@ -161,7 +162,9 @@ func (p *Parser) DiscardUntil(chars string) {
 // Accumulate the runes from the stream while it matches the chars
 func (p *Parser) Acc(chars string) string {
 	acc := ""
-	for p.NextIf(chars) { acc += string(p.C) }
+	for p.NextIf(chars) {
+		acc += string(p.C)
+	}
 	return acc
 }
 
@@ -179,17 +182,17 @@ func (p *Parser) ReadNumberList() {
 // Read the x y z[ w] information for a vector
 func (p *Parser) ReadNumberLit() {
 	val := ""
-	
+
 	if p.NextIf("-") {
 		val += "-"
 	}
-	
+
 	val += p.ReadInt()
 	if p.NextIf(".") {
 		val += "."
 		val += p.ReadInt()
 	}
-	
+
 	p.Emit(val, NumberLit)
 }
 
@@ -211,7 +214,9 @@ func (p *Parser) HasNext() bool {
 func (p *Parser) Next() bool {
 
 	// EOF
-	if !p.HasNext() { return false }
+	if !p.HasNext() {
+		return false
+	}
 	p.C, p.sz = utf8.DecodeRuneInString(p.Contents[p.pos:])
 	if p.C == utf8.RuneError {
 		return false
@@ -240,20 +245,22 @@ func (p *Parser) NextIf(chars string) bool {
 func (p *Parser) Peek(chars string) (ok bool, r rune) {
 	ok = true
 	r = utf8.RuneError
-	if !p.HasNext() { 
+	if !p.HasNext() {
 		ok = false
 		return
 	}
-	
+
 	r, _ = utf8.DecodeRuneInString(p.Contents[p.pos:])
 	if r == utf8.RuneError {
 		ok = false
 		return
 	}
-	
+
 	// no need to check nothing more
-	if len(chars) == 0 { return }
-	
+	if len(chars) == 0 {
+		return
+	}
+
 	if strings.IndexAny(string(r), chars) == -1 {
 		ok = false
 	}

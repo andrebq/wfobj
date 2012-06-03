@@ -6,9 +6,9 @@ import (
 
 func TestMeshLoader(t *testing.T) {
 	p := NewLiteralParser(objlit)
-//	p.Debug = &PrintState{}
+	//	p.Debug = &PrintState{}
 	go p.Parse()
-	
+
 	m, err := LoadMesh(p.Tokens)
 	if err != nil {
 		t.Fatalf("Unable to load mesh: %v", err)

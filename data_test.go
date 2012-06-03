@@ -11,10 +11,10 @@ f 1 2
 f 2 1
 `
 
-var model = &Mesh {
+var model = &Mesh{
 	[]Face{
-		Face{VertexList{Vertex{1.0, 1.0, 1.0}, Vertex{0.0, 1.0, 0.0},}},
-		Face{VertexList{Vertex{0.0, 1.0, 0.0}, Vertex{1.0, 1.0, 1.0},}},
+		Face{VertexList{Vertex{1.0, 1.0, 1.0}, Vertex{0.0, 1.0, 0.0}}},
+		Face{VertexList{Vertex{0.0, 1.0, 0.0}, Vertex{1.0, 1.0, 1.0}}},
 	},
 }
 

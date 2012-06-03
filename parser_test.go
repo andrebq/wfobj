@@ -13,7 +13,7 @@ func discard(ch <-chan Token, done chan bool, t *testing.T) {
 
 func TestParser(t *testing.T) {
 	p := NewLiteralParser(objlit)
-//	p.Debug = &PrintState{}
+	//	p.Debug = &PrintState{}
 	done := make(chan bool)
 	go discard(p.Tokens, done, t)
 	err := p.Parse()
