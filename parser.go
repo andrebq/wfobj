@@ -11,14 +11,31 @@ import (
 type Kind int
 
 const (
-	VectorDecl = Kind(iota)
+	VertexDecl = Kind(iota)
 	FaceDecl
 	NumberLit
+	Eof
 )
+
+var kindNames = map[Kind]string {
+		VertexDecl: "VECTOR_DECLARATION",
+		FaceDecl: "FACE_DECLARATION",
+		NumberLit: "NUMBER_LITERAL",
+		Eof: "EOF",
+	}
+
+func (k Kind) String() string {
+	return kindNames[k]
+}
 
 type Token struct {
 	Val	string
 	Kind Kind
+	Pos	Position
+}
+
+func (t *Token) String() string {
+	return fmt.Sprintf("[%v @ %v]%v", t.Kind, &t.Pos, t.Val)
 }
 
 type Position struct {
@@ -28,10 +45,20 @@ type Position struct {
 	Col int
 }
 
+func (p *Position) String() string {
+	return fmt.Sprintf("(line: %v, col: %v)", p.Line, p.Col)
+}
+
+type Debug interface {
+	State(p *Parser)
+	Emit(t *Token)
+}
+
 type Parser struct {
-	Contents []byte
+	Contents string
 	VList VertexList
 	Tokens	chan Token
+	Debug Debug
 	sz int
 	C rune
 	// position in the stream
@@ -47,7 +74,7 @@ type ParseError string
 
 // Return the messsage with the current position of the parser
 func NewParseError(p *Parser, msg string) ParseError{
-	return ParseError(fmt.Sprintf("%v (line: %v, col: %v)", msg, p.cPos.Line, p.cPos.Col))
+	return ParseError(fmt.Sprintf("%v %v", msg, p.cPos))
 }
 
 // Error interface
@@ -66,14 +93,14 @@ func NewParserFromFile(fileName string) (p *Parser, err error) {
 	if err != nil {
 		return
 	}
-	p = newLiteralParser(string(buff))
+	p = NewLiteralParser(string(buff))
 	return
 }
 
 // Parse the contents of the string variable
-func newLiteralParser(literal string) (p *Parser) {
+func NewLiteralParser(literal string) (p *Parser) {
 	literal = strings.Replace(literal, "\r\n", "\n", -1)
-	p = &Parser{[]byte(literal),make(VertexList,0), make(chan Token,1), 0, 0, 0, Position{1,0}, Position{1,0}}
+	p = &Parser{literal,make(VertexList,0), make(chan Token,0), nil, 0, 0, 0, Position{1,1}, Position{1,0}}
 	return
 }
 
@@ -89,10 +116,10 @@ func (p *Parser) Parse() (err error) {
 	for p.Next() {
 		switch(p.C) {
 			case 'v':
-				p.Tokens <- Token{"vector", VectorDecl}
+				p.Emit("", VertexDecl)
 				p.ReadNumberList()
 			case 'f':
-				p.Tokens <- Token{"face", FaceDecl}
+				p.Emit("", FaceDecl)
 				p.ReadNumberList()
 			case '#':
 				// comment
@@ -102,8 +129,18 @@ func (p *Parser) Parse() (err error) {
 				panic(fmt.Sprintf("Invalid utf-8 code @ %v", p.pos))
 		}
 	}
+	p.Emit("", Eof)
 	
 	return
+}
+
+// Emit a token
+func (p *Parser) Emit(val string, kind Kind) {
+	t := Token{val, kind, p.cPos}
+	if p.Debug != nil{
+		p.Debug.Emit(&t)
+	}
+	p.Tokens <- t
 }
 
 // Discard all chars from the stream that match at least one of the chars passed
@@ -141,19 +178,19 @@ func (p *Parser) ReadNumberList() {
 
 // Read the x y z[ w] information for a vector
 func (p *Parser) ReadNumberLit() {
-	tok := Token{"", NumberLit}
+	val := ""
 	
 	if p.NextIf("-") {
-		tok.Val += "-"
+		val += "-"
 	}
 	
-	tok.Val += p.ReadInt()
+	val += p.ReadInt()
 	if p.NextIf(".") {
-		tok.Val += "."
-		tok.Val += p.ReadInt()
+		val += "."
+		val += p.ReadInt()
 	}
 	
-	p.Tokens <- tok
+	p.Emit(val, NumberLit)
 }
 
 // Read a integer and panic if none is found
@@ -172,9 +209,10 @@ func (p *Parser) HasNext() bool {
 
 // Read the rune and move to the next
 func (p *Parser) Next() bool {
+
 	// EOF
 	if !p.HasNext() { return false }
-	p.C, p.sz = utf8.DecodeRune(p.Contents[p.pos:])
+	p.C, p.sz = utf8.DecodeRuneInString(p.Contents[p.pos:])
 	if p.C == utf8.RuneError {
 		return false
 	}
@@ -183,7 +221,7 @@ func (p *Parser) Next() bool {
 	// increment the line number
 	if p.C == '\n' {
 		p.oPos = p.cPos
-		p.cPos = Position{p.oPos.Line + 1, 0}
+		p.cPos = Position{p.oPos.Line + 1, 1}
 	}
 	p.cPos.Col += 1
 	return true
@@ -200,13 +238,14 @@ func (p *Parser) NextIf(chars string) bool {
 
 // Peek the next run without consuming it
 func (p *Parser) Peek(chars string) (ok bool, r rune) {
+	ok = true
 	r = utf8.RuneError
 	if !p.HasNext() { 
 		ok = false
 		return
 	}
 	
-	r, _ = utf8.DecodeRune(p.Contents[p.pos:])
+	r, _ = utf8.DecodeRuneInString(p.Contents[p.pos:])
 	if r == utf8.RuneError {
 		ok = false
 		return
@@ -235,4 +274,13 @@ func (p *Parser) PushBack() {
 		p.oPos = Position{}
 	}
 	p.C = utf8.RuneError
+}
+
+// Return a string representation of the current state of the parser
+func (p *Parser) String() string {
+	part := p.Contents[p.pos:]
+	if len(part) > 10 {
+		part = part[:10]
+	}
+	return fmt.Sprintf("Contents: %q... @ %v", part, p.cPos)
 }
