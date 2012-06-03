@@ -90,7 +90,14 @@ func (p *Parser) Parse() (err error) {
 		switch(p.C) {
 			case 'v':
 				p.Tokens <- Token{"vector", VectorDecl}
-				p.ReadNumberLit()
+				p.ReadNumberList()
+			case 'f':
+				p.Tokens <- Token{"face", FaceDecl}
+				p.ReadNumberList()
+			case '#':
+				// comment
+				p.DiscardUntil("\n")
+				
 			case utf8.RuneError:
 				panic(fmt.Sprintf("Invalid utf-8 code @ %v", p.pos))
 		}
@@ -104,6 +111,16 @@ func (p *Parser) Discard(chars string) {
 	for p.NextIf(chars) {	}
 }
 
+// Discard all the runes until the one of the chars is found
+func (p *Parser) DiscardUntil(chars string) {
+	for p.Next() {
+		if strings.IndexAny(string(p.C), chars) != -1 {
+			p.PushBack()
+			return
+		}
+	}
+}
+
 // Accumulate the runes from the stream while it matches the chars
 func (p *Parser) Acc(chars string) string {
 	acc := ""
@@ -111,16 +128,30 @@ func (p *Parser) Acc(chars string) string {
 	return acc
 }
 
+// Read a variable length list o numbers
+func (p *Parser) ReadNumberList() {
+	p.Discard(" ")
+	for p.NextIf("0123456789-.") {
+		// push the last digit/signal back in the stream
+		p.PushBack()
+		p.ReadNumberLit()
+		p.Discard(" ")
+	}
+}
+
 // Read the x y z[ w] information for a vector
 func (p *Parser) ReadNumberLit() {
-	p.Discard(" ")
 	tok := Token{"", NumberLit}
 	
-	tok.Val = p.ReadInt()
+	if p.NextIf("-") {
+		tok.Val += "-"
+	}
+	
+	tok.Val += p.ReadInt()
 	if p.NextIf(".") {
 		tok.Val += "."
+		tok.Val += p.ReadInt()
 	}
-	tok.Val += p.ReadInt()
 	
 	p.Tokens <- tok
 }
@@ -160,14 +191,34 @@ func (p *Parser) Next() bool {
 
 // Read the rune only if it's in the chars
 func (p *Parser) NextIf(chars string) bool {
-	ret := p.Next()
-	if ret {
-		if strings.IndexAny(string(p.C), chars) == -1 {
-			p.PushBack()
-			ret = false
-		}
+	ok, _ := p.Peek(chars)
+	if ok {
+		ok = p.Next()
 	}
-	return ret
+	return ok
+}
+
+// Peek the next run without consuming it
+func (p *Parser) Peek(chars string) (ok bool, r rune) {
+	r = utf8.RuneError
+	if !p.HasNext() { 
+		ok = false
+		return
+	}
+	
+	r, _ = utf8.DecodeRune(p.Contents[p.pos:])
+	if r == utf8.RuneError {
+		ok = false
+		return
+	}
+	
+	// no need to check nothing more
+	if len(chars) == 0 { return }
+	
+	if strings.IndexAny(string(r), chars) == -1 {
+		ok = false
+	}
+	return
 }
 
 // Push the last run back in the reader
