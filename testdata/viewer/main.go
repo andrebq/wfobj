@@ -29,6 +29,16 @@ var (
 	quadAngle float32
 	running   bool
 	mesh *wfobj.Mesh
+	faceColor = map[int][]float32{}
+)
+
+type State struct {
+	Left bool
+	Right bool
+}
+
+var (
+	globalState = &State{}
 )
 
 func main() {
@@ -95,6 +105,10 @@ func onKey(key, state int) {
 	switch key {
 	case glfw.KeyEsc:
 		running = false
+	case glfw.KeyLeft:
+		globalState.Left = state == glfw.KeyPress
+	case glfw.KeyRight:
+		globalState.Right = state == glfw.KeyPress
 	}
 }
 
@@ -111,12 +125,21 @@ func drawScene() {
 	gl.Clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
 
 	gl.LoadIdentity()
-	gl.Translatef(1.5, 0, -6)
+	gl.Translatef(0, 0, -20)
 	gl.Rotatef(quadAngle, 1, 1, 1)
 
 	gl.Begin(gl.QUADS)
 	for i, _ := range mesh.Faces {
-		gl.Color3f(rand.Float32(), rand.Float32(), rand.Float32())
+		if colors, ok := faceColor[i]; ok {
+			gl.Color3f(colors[0], colors[1], colors[2])
+		} else {
+			faceColor[i] = make([]float32, 3)
+			faceColor[i][0] = rand.Float32()
+			faceColor[i][1] = rand.Float32()
+			faceColor[i][2] = rand.Float32()
+			gl.Color3f(faceColor[i][0], faceColor[i][1], faceColor[i][2])
+		}
+		
 		face := &mesh.Faces[i]
 		for j, _ := range face.Vertices {
 			v := &face.Vertices[j]
@@ -125,7 +148,13 @@ func drawScene() {
 	}
 	gl.End()
 	
-	quadAngle -= 0.15
+	if globalState.Left {
+		quadAngle += 0.20
+	}
+	
+	if globalState.Right {
+		quadAngle -= 0.20
+	}
 
 	glfw.SwapBuffers()
 }
