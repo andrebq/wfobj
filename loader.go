@@ -128,3 +128,14 @@ func LoadMesh(tokens <-chan Token) (m *Mesh, err error) {
 	m = ml.mesh
 	return
 }
+
+// Load a new mesh from the given .obj file
+func LoadMeshFromFile(file string) (m *Mesh, err error) {
+	p, err := NewParserFromFile(file)
+	if err != nil {
+		return
+	}
+	go p.Parse()
+	m, err = LoadMesh(p.Tokens)
+	return
+}
