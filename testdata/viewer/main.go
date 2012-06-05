@@ -30,15 +30,16 @@ var (
 	running   bool
 	mesh *wfobj.Mesh
 	faceColor = map[int][]float32{}
+	speed float32 = 0.5
 )
 
 type State struct {
-	Left bool
-	Right bool
+	Keys map[int]bool
+	yRot, xRot, zRot float32
 }
 
 var (
-	globalState = &State{}
+	globalState = &State{Keys:make(map[int]bool)}
 )
 
 func main() {
@@ -79,11 +80,13 @@ func main() {
 	glfw.SetWindowTitle(Title)
 	glfw.SetWindowSizeCallback(onResize)
 	glfw.SetKeyCallback(onKey)
+	glfw.SetCharCallback(onChar)
 
 	initGL()
 
 	running = true
 	for running && glfw.WindowParam(glfw.Opened) == 1 {
+		handleInput()
 		drawScene()
 	}
 }
@@ -105,11 +108,14 @@ func onKey(key, state int) {
 	switch key {
 	case glfw.KeyEsc:
 		running = false
-	case glfw.KeyLeft:
-		globalState.Left = state == glfw.KeyPress
-	case glfw.KeyRight:
-		globalState.Right = state == glfw.KeyPress
+	case glfw.KeyLeft, glfw.KeyRight, glfw.KeyUp, glfw.KeyDown, KeyW, KeyS, KeyPlus, KeyMinus:
+		globalState.Keys[key] = state == glfw.KeyPress
+	default:
+		print("Key: ", key, " is pressed? ",state == glfw.KeyPress)
 	}
+}
+
+func onChar(key, state int) {
 }
 
 func initGL() {
@@ -121,12 +127,42 @@ func initGL() {
 	gl.Hint(gl.PERSPECTIVE_CORRECTION_HINT, gl.NICEST)
 }
 
+func handleInput() {
+	if globalState.Keys[glfw.KeyLeft] {
+		globalState.yRot -= speed
+	}
+	if globalState.Keys[glfw.KeyRight] {
+		globalState.yRot += speed
+	}
+	if globalState.Keys[glfw.KeyUp] {
+		globalState.xRot += speed
+	}
+	if globalState.Keys[glfw.KeyDown] {
+		globalState.xRot -= speed
+	}
+	if globalState.Keys[KeyW] {
+		globalState.zRot += speed
+	}
+	if globalState.Keys[KeyS] {
+		globalState.zRot -= speed
+	}
+	if globalState.Keys[KeyPlus] {
+		speed += 0.5
+	}
+	if globalState.Keys[KeyMinus] {
+		speed -= 0.5
+	}
+	if speed < 0.5 { speed = 0.5 } else if speed > 2 { speed = 2 }
+}
+
 func drawScene() {
 	gl.Clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
 
 	gl.LoadIdentity()
 	gl.Translatef(0, 0, -20)
-	gl.Rotatef(quadAngle, 1, 1, 1)
+	gl.Rotatef(globalState.xRot, 1, 0, 0)
+	gl.Rotatef(globalState.yRot, 0, 1, 0)
+	gl.Rotatef(globalState.zRot, 0, 0, 1)
 
 	gl.Begin(gl.QUADS)
 	for i, _ := range mesh.Faces {
@@ -147,14 +183,6 @@ func drawScene() {
 		}
 	}
 	gl.End()
-	
-	if globalState.Left {
-		quadAngle += 0.20
-	}
-	
-	if globalState.Right {
-		quadAngle -= 0.20
-	}
 
 	glfw.SwapBuffers()
 }
