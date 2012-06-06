@@ -36,10 +36,11 @@ var (
 type State struct {
 	Keys map[int]bool
 	yRot, xRot, zRot float32
+	zoom float32
 }
 
 var (
-	globalState = &State{Keys:make(map[int]bool)}
+	globalState = &State{Keys:make(map[int]bool), zoom:1,}
 )
 
 func main() {
@@ -108,7 +109,7 @@ func onKey(key, state int) {
 	switch key {
 	case glfw.KeyEsc:
 		running = false
-	case glfw.KeyLeft, glfw.KeyRight, glfw.KeyUp, glfw.KeyDown, KeyW, KeyS, KeyPlus, KeyMinus:
+	case glfw.KeyLeft, glfw.KeyRight, glfw.KeyUp, glfw.KeyDown, KeyW, KeyS, KeyPlus, KeyMinus,glfw.KeyPagedown, glfw.KeyPageup:
 		globalState.Keys[key] = state == glfw.KeyPress
 	default:
 		print("Key: ", key, " is pressed? ",state == glfw.KeyPress)
@@ -152,6 +153,13 @@ func handleInput() {
 	if globalState.Keys[KeyMinus] {
 		speed -= 0.5
 	}
+	if globalState.Keys[glfw.KeyPageup] {
+		globalState.zoom += 0.5
+	}
+	if globalState.Keys[glfw.KeyPagedown] {
+		globalState.zoom -= 0.5
+	}
+	if globalState.zoom < 1 { globalState.zoom = 1 }
 	if speed < 0.5 { speed = 0.5 } else if speed > 2 { speed = 2 }
 }
 
@@ -163,6 +171,10 @@ func drawScene() {
 	gl.Rotatef(globalState.xRot, 1, 0, 0)
 	gl.Rotatef(globalState.yRot, 0, 1, 0)
 	gl.Rotatef(globalState.zRot, 0, 0, 1)
+	
+	if (globalState.zoom != 1) {
+		gl.Scalef(globalState.zoom, globalState.zoom, globalState.zoom)
+	}
 
 	gl.Begin(gl.QUADS)
 	for i, _ := range mesh.Faces {
