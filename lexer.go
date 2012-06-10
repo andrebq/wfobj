@@ -11,15 +11,27 @@ import (
 type Kind int
 const (
 	VertexDecl = Kind(iota)
+	NormalDecl
 	FaceDecl
 	NumberLit
+	SlashLit
 	Eof
+)
+
+const (
+	Numbers = "0123456789"
+	Minus = "-"
+	Dot = "."
+	SignedNumber = Minus + Numbers
+	FloatNumber = SignedNumber + Dot
 )
 
 var kindNames = map[Kind]string{
 	VertexDecl: "VECTOR_DECLARATION",
+	NormalDecl: "NORMAL_DECLARATION",
 	FaceDecl:   "FACE_DECLARATION",
 	NumberLit:  "NUMBER_LITERAL",
+	SlashLit: "SLASH_LITERAL",
 	Eof:        "EOF",
 }
 
@@ -115,11 +127,18 @@ func (p *Parser) Parse() (err error) {
 	for p.Next() {
 		switch p.C {
 		case 'v':
-			p.Emit("", VertexDecl)
+			ok := p.NextIf(" n")
+			if !ok { panic("Expecting Vertex Decl or Normal Decl") }
+			switch p.C {
+				case ' ':
+					p.Emit("", VertexDecl)
+				case 'n':
+					p.Emit("", NormalDecl)
+			}
 			p.ReadNumberList()
 		case 'f':
 			p.Emit("", FaceDecl)
-			p.ReadNumberList()
+			p.ReadFacePars()
 		case '#':
 			// comment
 			p.DiscardUntil("\n")
@@ -170,7 +189,7 @@ func (p *Parser) Acc(chars string) string {
 // Read a variable length list o numbers
 func (p *Parser) ReadNumberList() {
 	p.Discard(" ")
-	for p.NextIf("0123456789-.") {
+	for p.NextIf(FloatNumber) {
 		// push the last digit/signal back in the stream
 		p.PushBack()
 		p.ReadNumberLit()
@@ -195,9 +214,32 @@ func (p *Parser) ReadNumberLit() {
 	p.Emit(val, NumberLit)
 }
 
+// Read the Face declaration supporting the format
+// f vIndex/textureIndex/normalIndex
+func (p *Parser) ReadFaceParts() {
+	p.Discard(" ")
+	p.ReadNumberLit()
+	if ok, _ := p.Peek("/"); ok {
+		p.Emit("", SlashLit)
+	} else {
+		return
+	}
+	p.Next()
+	if ok, _ := p.Peek(SignedNumber); ok {
+		p.ReadNumberLit()
+	}
+	if ok, _ := p.Peek("/"); ok {
+		p.Emit("", SlashLit)
+	} else {
+		return
+	}
+	p.Next()
+	
+}
+
 // Read a integer and panic if none is found
 func (p *Parser) ReadInt() string {
-	num := p.Acc("0123456789")
+	num := p.Acc(Number)
 	if len(num) == 0 {
 		panic("Expecting one of: 0123456789")
 	}
