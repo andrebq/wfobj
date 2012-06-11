@@ -19,12 +19,8 @@ var testdata = []TestData{
 		ignore: false,
 		mesh: &Mesh{
 			[]Face{
-				Face{VertexList{Vertex{1.0, 1.0, 1.0}, Vertex{0.0, 1.0, 0.0}}, VertexList{
-					Vertex{1.0, 1.0, 1.0}, Vertex{1.0, 1.0, 1.0},
-				}},
-				Face{VertexList{Vertex{0.0, 1.0, 0.0}, Vertex{1.0, 1.0, 1.0}}, VertexList{
-					Vertex{0.0, 1.0, 0.0}, Vertex{1.0, 1.0, 1.0},
-				}},
+				Face{VertexList{Vertex{1.0, 1.0, 1.0}, Vertex{0.0, 1.0, 0.0}}, VertexList{}},
+				Face{VertexList{Vertex{0.0, 1.0, 0.0}, Vertex{1.0, 1.0, 1.0}}, VertexList{}},
 			},
 		},
 		objlit: `# comment
@@ -67,8 +63,12 @@ f 2 1
 		ignore: false,
 		mesh: &Mesh{
 			[]Face{
-				Face{VertexList{Vertex{1.0, 1.0, 1.0}, Vertex{0.0, 1.0, 0.0}}, VertexList{}},
-				Face{VertexList{Vertex{0.0, 1.0, 0.0}, Vertex{1.0, 1.0, 1.0}}, VertexList{}},
+				Face{VertexList{Vertex{1.0, 1.0, 1.0}, Vertex{0.0, 1.0, 0.0}}, VertexList{
+					Vertex{1.0, 1.0, 1.0}, Vertex{0.0, 1.0, 0.0},
+				}},
+				Face{VertexList{Vertex{0.0, 1.0, 0.0}, Vertex{1.0, 1.0, 1.0}}, VertexList{
+					Vertex{0.0, 1.0, 0.0}, Vertex{1.0, 1.0, 1.0},
+				}},
 			},
 		},
 		objlit: `# comment
@@ -77,7 +77,7 @@ v 0.0 1.0 0.0
 vn 1.0 1.0 1.0
 vn 0.0 1.0 0.0
 f 1//1 2//2
-f 2//2 1//2
+f 2//2 1//1
 `,
 		tokens: []Token{
 
