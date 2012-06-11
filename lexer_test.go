@@ -4,24 +4,33 @@ import (
 	"testing"
 )
 
-func discard(ch <-chan *Token, done chan bool, t *testing.T) {
+func discard(ch <-chan *Token, done chan []*Token, t *testing.T) {
+	buff := make([]*Token, 0)
 	for tok := range ch {
-		print("Token: ", tok, "\n")
+		buff = append(buff, tok)
 	}
-	done <- true
+	done <- buff
 }
 
 func TestParser(t *testing.T) {
 	for _, test := range testdata {
 		t.Logf("Title: %v", test.title)
 		p := NewLiteralParser(test.objlit)
-		p.Debug = &PrintState{}
-		done := make(chan bool)
+		//p.Debug = &PrintState{}
+		done := make(chan []*Token)
 		go discard(p.Tokens, done, t)
 		err := p.Parse()
 		if err != nil {
-			t.Fatalf("Unable to parse the cube.obj file. %v", err)
+			t.Errorf("Unable to parse the cube.obj file. %v", err)
 		}
-		<-done
+		tmp := <-done
+		if len(tmp) != len(test.tokens) {
+			t.Errorf("Expecting %v tokens but got %v", len(test.tokens), len(tmp))
+		}
+		for i, tok := range tmp {
+			if tok.Kind != test.tokens[i].Kind {
+				t.Errorf("Expecting %v but got %v", test.tokens[i], tok)
+			}
+		}
 	}
 }

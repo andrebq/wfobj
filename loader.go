@@ -79,7 +79,6 @@ func (m *meshLoader) readFaceDecl(f *Face) {
 	for m.next() {
 		t := m.token()
 		if t.Kind == NumberLit {
-			print(fmt.Sprintf("Token: %v\n", t))
 			m.pushBack()
 			idx := int32(m.readNumberLit())
 			f.Vertices = append(f.Vertices, m.vertices[idx-1])
@@ -145,7 +144,7 @@ func (m *meshLoader) Load() (err error) {
 			m.readFaceDecl(&f)
 			m.mesh.Faces = append(m.mesh.Faces, f)
 		case Eof:
-			print("Eof\n")
+			break
 		default:
 			panic(fmt.Sprintf("Unexpected token (%v) expecting: %v", m.token(), fmt.Sprintf("[%v]", []Kind{VertexDecl, FaceDecl, Eof})))
 		}
