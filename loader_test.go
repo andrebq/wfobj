@@ -5,20 +5,23 @@ import (
 )
 
 func TestMeshLoader(t *testing.T) {
-	p := NewLiteralParser(objlit)
-	p.Debug = &PrintState{}
-	go p.Parse()
+	for _, test := range testdata {
+		t.Logf("Title: %v", test.title)
+		p := NewLiteralParser(test.objlit)
+		p.Debug = &PrintState{}
+		go p.Parse()
 
-	m, err := LoadMesh(p.Tokens)
-	if err != nil {
-		t.Fatalf("Unable to load mesh: %v", err)
-	}
-	if len(m.Faces) != 2 {
-		t.Fatalf("Mesh should have 2 faces")
-	}
-	for i, _ := range m.Faces {
-		if !m.Faces[i].Same(&model.Faces[i]) {
-			t.Fatalf("Faces are different. Expecting %v got %v", model.Faces[i], m.Faces[i])
+		m, err := LoadMesh(p.Tokens)
+		if err != nil {
+			t.Fatalf("Unable to load mesh: %v", err)
+		}
+		if len(m.Faces) != len(test.mesh.Faces) {
+			t.Fatalf("Mesh should have 2 faces")
+		}
+		for i, _ := range m.Faces {
+			if !m.Faces[i].Same(&test.mesh.Faces[i]) {
+				t.Fatalf("Faces are different. Expecting %v got %v", test.mesh.Faces[i], m.Faces[i])
+			}
 		}
 	}
 }
