@@ -14,6 +14,7 @@ func discard(ch <-chan *Token, done chan []*Token, t *testing.T) {
 
 func TestParser(t *testing.T) {
 	for _, test := range testdata {
+		if test.ignore { continue }
 		t.Logf("Title: %v", test.title)
 		p := NewLiteralParser(test.objlit)
 		//p.Debug = &PrintState{}

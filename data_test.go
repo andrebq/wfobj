@@ -7,6 +7,7 @@ package wfobj
 
 type TestData struct {
 	title	string
+	ignore	bool
 	mesh   *Mesh
 	tokens []Token
 	objlit string
@@ -15,6 +16,7 @@ type TestData struct {
 var testdata = []TestData{
 	{
 		title: "Simple mesh",
+		ignore: false,
 		mesh: &Mesh{
 			[]Face{
 				Face{VertexList{Vertex{1.0, 1.0, 1.0}, Vertex{0.0, 1.0, 0.0}}, VertexList{}},
@@ -44,26 +46,21 @@ f 2 1
 			// Face	
 			Token{"", FaceDecl, Position{}},
 			Token{"1", NumberLit, Position{}},
-			Token{"1", NumberLit, Position{}},
-
-			// vector
-			Token{"2", NumberLit, Position{}},
 			Token{"2", NumberLit, Position{}},
 
 			// Face	
 			Token{"", FaceDecl, Position{}},
 			Token{"2", NumberLit, Position{}},
-			Token{"2", NumberLit, Position{}},
-
-			// vector
 			Token{"1", NumberLit, Position{}},
-			Token{"1", NumberLit, Position{}},
+			
+			Token{"", Eof, Position{}},
 		},
 	},
 	
 	// Mesh with normals
 	{
 		title: "Mesh with normals",
+		ignore: true,
 		mesh: &Mesh{
 			[]Face{
 				Face{VertexList{Vertex{1.0, 1.0, 1.0}, Vertex{0.0, 1.0, 0.0}}, VertexList{}},
