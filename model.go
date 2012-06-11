@@ -13,6 +13,18 @@ func (v *Vertex) Same(other *Vertex) bool {
 // Represent a vertex list
 type VertexList []Vertex
 
+func (v VertexList) Same(other VertexList) bool {
+	if len(v) != len(other) {
+		return false
+	}
+	for i, _ := range other {
+		if !v[i].Same(&other[i]) {
+			return false
+		}
+	}
+	return true
+}
+
 // Represent one face of the object
 // Vertices must be in the right draw order
 type Face struct {
@@ -23,15 +35,7 @@ type Face struct {
 // Check if two faces are equal
 // ie, same vertices in the same order
 func (f *Face) Same(other *Face) bool {
-	if len(f.Vertices) != len(other.Vertices) {
-		return false
-	}
-	for i, _ := range f.Vertices {
-		if !f.Vertices[i].Same(&other.Vertices[i]) {
-			return false
-		}
-	}
-	return true
+	return f.Vertices.Same(other.Vertices)
 }
 
 // Represent a mesh made by a collection of faces/material
