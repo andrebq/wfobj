@@ -16,13 +16,14 @@ const (
 	NumberLit
 	SlashLit
 	Eof
+	AnyKind
 )
 
 const (
-	Numbers = "0123456789"
+	Number = "0123456789"
 	Minus = "-"
 	Dot = "."
-	SignedNumber = Minus + Numbers
+	SignedNumber = Minus + Number
 	FloatNumber = SignedNumber + Dot
 )
 
@@ -68,7 +69,7 @@ type Debug interface {
 type Parser struct {
 	Contents string
 	VList    VertexList
-	Tokens   chan Token
+	Tokens   chan *Token
 	Debug    Debug
 	sz       int
 	C        rune
@@ -111,7 +112,7 @@ func NewParserFromFile(fileName string) (p *Parser, err error) {
 // Parse the contents of the string variable
 func NewLiteralParser(literal string) (p *Parser) {
 	literal = strings.Replace(literal, "\r\n", "\n", -1)
-	p = &Parser{literal, make(VertexList, 0), make(chan Token, 0), nil, 0, 0, 0, Position{1, 1}, Position{1, 0}}
+	p = &Parser{literal, make(VertexList, 0), make(chan *Token, 0), nil, 0, 0, 0, Position{1, 1}, Position{1, 0}}
 	return
 }
 
@@ -138,7 +139,7 @@ func (p *Parser) Parse() (err error) {
 			p.ReadNumberList()
 		case 'f':
 			p.Emit("", FaceDecl)
-			p.ReadFacePars()
+			p.ReadFaceParts()
 		case '#':
 			// comment
 			p.DiscardUntil("\n")
@@ -158,7 +159,7 @@ func (p *Parser) Emit(val string, kind Kind) {
 	if p.Debug != nil {
 		p.Debug.Emit(&t)
 	}
-	p.Tokens <- t
+	p.Tokens <- &t
 }
 
 // Discard all chars from the stream that match at least one of the chars passed
@@ -217,24 +218,18 @@ func (p *Parser) ReadNumberLit() {
 // Read the Face declaration supporting the format
 // f vIndex/textureIndex/normalIndex
 func (p *Parser) ReadFaceParts() {
-	p.Discard(" ")
-	p.ReadNumberLit()
-	if ok, _ := p.Peek("/"); ok {
-		p.Emit("", SlashLit)
-	} else {
-		return
+	for {
+		p.Discard(" ")
+		if ok, _ := p.Peek(FloatNumber); ok {
+			p.ReadNumberLit()
+			continue
+		}
+		if ok, _ := p.Peek("/"); ok {
+			p.Emit("", SlashLit)
+			continue
+		}
+		break
 	}
-	p.Next()
-	if ok, _ := p.Peek(SignedNumber); ok {
-		p.ReadNumberLit()
-	}
-	if ok, _ := p.Peek("/"); ok {
-		p.Emit("", SlashLit)
-	} else {
-		return
-	}
-	p.Next()
-	
 }
 
 // Read a integer and panic if none is found

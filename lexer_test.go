@@ -4,9 +4,13 @@ import (
 	"testing"
 )
 
-func discard(ch <-chan Token, done chan bool, t *testing.T) {
+func discard(ch <-chan *Token, done chan bool, t *testing.T) {
+	idx := 0
 	for tok := range ch {
-		t.Logf("Token: %v", tok)
+		if tok.Kind != tokens[idx].Kind {
+			t.Errorf("Expecting %v at position %v, but got %v", tokens[idx], idx, tok)
+		}
+		idx++
 	}
 	done <- true
 }

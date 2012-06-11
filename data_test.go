@@ -13,9 +13,27 @@ f 2 1
 
 var model = &Mesh{
 	[]Face{
-		Face{VertexList{Vertex{1.0, 1.0, 1.0}, Vertex{0.0, 1.0, 0.0}}},
-		Face{VertexList{Vertex{0.0, 1.0, 0.0}, Vertex{1.0, 1.0, 1.0}}},
+		Face{VertexList{Vertex{1.0, 1.0, 1.0}, Vertex{0.0, 1.0, 0.0}}, VertexList{}, },
+		Face{VertexList{Vertex{0.0, 1.0, 0.0}, Vertex{1.0, 1.0, 1.0}}, VertexList{}, },
 	},
+}
+
+var tokens = []Token{
+	Token{"", VertexDecl, Position{}},
+	Token{"1.0", NumberLit, Position{}},
+	Token{"1.0", NumberLit, Position{}},
+	Token{"1.0", NumberLit, Position{}},
+	Token{"", VertexDecl, Position{}},
+	Token{"0.0", NumberLit, Position{}},
+	Token{"1.0", NumberLit, Position{}},
+	Token{"0.0", NumberLit, Position{}},
+	Token{"", FaceDecl, Position{}},
+	Token{"0.0", NumberLit, Position{}},
+	Token{"1.0", NumberLit, Position{}},
+	Token{"", FaceDecl, Position{}},
+	Token{"0.0", NumberLit, Position{}},
+	Token{"1.0", NumberLit, Position{}},
+	Token{"", Eof, Position{}},
 }
 
 type PrintState struct{}

@@ -6,7 +6,7 @@ import (
 
 func TestMeshLoader(t *testing.T) {
 	p := NewLiteralParser(objlit)
-	//	p.Debug = &PrintState{}
+	p.Debug = &PrintState{}
 	go p.Parse()
 
 	m, err := LoadMesh(p.Tokens)
@@ -18,7 +18,7 @@ func TestMeshLoader(t *testing.T) {
 	}
 	for i, _ := range m.Faces {
 		if !m.Faces[i].Same(&model.Faces[i]) {
-			t.Fatalf("Faces are different. Expecting %v got %v", m.Faces[i], model.Faces[i])
+			t.Fatalf("Faces are different. Expecting %v got %v", model.Faces[i], m.Faces[i])
 		}
 	}
 }

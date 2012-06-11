@@ -17,6 +17,7 @@ type VertexList []Vertex
 // Vertices must be in the right draw order
 type Face struct {
 	Vertices VertexList
+	Normals VertexList
 }
 
 // Check if two faces are equal

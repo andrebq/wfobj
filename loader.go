@@ -8,8 +8,9 @@ import (
 type meshLoader struct {
 	mesh     *Mesh
 	vertices VertexList
-	tokens   <-chan Token
-	token    Token
+	normals VertexList
+	tokens []*Token
+	pos	int
 }
 
 type MeshLoadError string
@@ -22,22 +23,38 @@ func (m MeshLoadError) Error() string {
 }
 
 // Read a new token from the parser
-func (m *meshLoader) read() (ok bool) {
-	m.token, ok = <-m.tokens
+func (m *meshLoader) next() (ok bool) {
+	m.pos++
+	if m.pos >= len(m.tokens) { return }
+	ok = true
 	return
 }
 
-// Read a new token from the parser.
-// If the token kind is different from k panic
-func (m *meshLoader) readKind(k Kind) {
-	m.read()
-	m.ensureKind(&m.token, k)
+func (m *meshLoader) peek(k Kind) (t *Token, ok bool) {
+	npos := m.pos + 1
+	if npos >= len(m.tokens) { return }
+	t = m.tokens[npos]
+	if k != AnyKind {
+		ok = t.Kind == k
+	}
+	return
 }
 
-func (m *meshLoader) ensureKind(t *Token, k Kind) {
-	if t.Kind != k {
-		panic(fmt.Sprintf("Invalid token %v. Expecting %v", t, k))
+// Read the current token
+func (m *meshLoader) token() *Token {
+	if m.pos < 0 { panic("Invalid position. Must be non zero") }
+	if m.pos >= len(m.tokens) { panic("Invalid position. Must be less then length") }
+	return m.tokens[m.pos]
+}
+
+func (m *meshLoader) ensureKind(k Kind) {
+	if m.token().Kind != k {
+		panic(fmt.Sprintf("Invalid token %v. Expecting %v", m.token(), k))
 	}
+}
+
+func (m *meshLoader) pushBack() {
+	m.pos--
 }
 
 // Read a number from the token stream and return the number
@@ -45,18 +62,53 @@ func (m *meshLoader) ensureKind(t *Token, k Kind) {
 //
 // If t is not nil, instead of consuming a token from the stream
 // just ensure that t is a valid number literal
-func (m *meshLoader) readNumberLit(t *Token) (num float64) {
-	if t == nil {
-		m.read()
-	}
-	t = &m.token
-	m.ensureKind(t, NumberLit)
+func (m *meshLoader) readNumberLit() (num float64) {
+	m.next()
+	t := m.token()
+	m.ensureKind(NumberLit)
 
 	num, err := strconv.ParseFloat(t.Val, 64)
 	if err != nil {
 		panic(err)
 	}
 	return num
+}
+
+// Read the face declaration with the number/number/number format
+func (m *meshLoader) readFaceDecl(f *Face) {
+	for m.next() {
+		t := m.token()
+		if t.Kind == NumberLit {
+			print(fmt.Sprintf("Token: %v\n", t))
+			m.pushBack()
+			idx := int32(m.readNumberLit())
+			f.Vertices = append(f.Vertices, m.vertices[idx-1])
+			
+			// texture information
+			m.next()
+			t = m.token()
+			if t.Kind == SlashLit {
+				// TODO handle textures
+			} else {
+				m.pushBack()
+				continue
+			}
+			
+			// normal information
+			m.next()
+			t = m.token()
+			if t.Kind == SlashLit {
+				idx := int32(m.readNumberLit())
+				f.Normals = append(f.Normals, m.normals[idx-1])
+			} else {
+				m.pushBack()
+				continue
+			}
+		} else {
+			m.pushBack()
+			break
+		}
+	}
 }
 
 func (m *meshLoader) Load() (err error) {
@@ -67,54 +119,35 @@ func (m *meshLoader) Load() (err error) {
 		}
 	}()
 
-	if !m.read() {
-		panic("Empty token stream")
-	}
-
 	m.vertices = make(VertexList, 0)
+	m.normals = make(VertexList, 0)
 	m.mesh = &Mesh{}
 	m.mesh.Faces = make([]Face, 0)
 
-	for {
-		switch m.token.Kind {
+	for m.next() {
+		switch m.token().Kind {
 		case VertexDecl:
 			v := Vertex{}
-			v.X = float32(m.readNumberLit(nil))
-			v.Y = float32(m.readNumberLit(nil))
-			v.Z = float32(m.readNumberLit(nil))
+			v.X = float32(m.readNumberLit())
+			v.Y = float32(m.readNumberLit())
+			v.Z = float32(m.readNumberLit())
 			m.vertices = append(m.vertices, v)
+		case NormalDecl:
+			n := Vertex{}
+			n.X = float32(m.readNumberLit())
+			n.Y = float32(m.readNumberLit())
+			n.Z = float32(m.readNumberLit())
+			m.normals = append(m.normals, n)
 		case FaceDecl:
 			f := Face{}
 			f.Vertices = make(VertexList, 0)
-			faceDef := true
-			for faceDef {
-				if !m.read() {
-					break
-				}
-				switch m.token.Kind {
-				case NumberLit:
-					idx := int32(m.readNumberLit(&m.token))
-					// copy the vertices from the vertex list to the face
-					f.Vertices = append(f.Vertices, m.vertices[idx-1])
-				default:
-					// face definition completed
-					faceDef = false
-				}
-			}
+			f.Normals = make(VertexList, 0)
+			m.readFaceDecl(&f)
 			m.mesh.Faces = append(m.mesh.Faces, f)
-			// keep the last token and continue from here
-			// prevent the final call to m.read
-			// since the previous for consumed all tokens from the channel
-			continue
 		case Eof:
-			break
+			print("Eof\n")
 		default:
-			panic(fmt.Sprintf("Unexpected token (%v) expecting: %v", &m.token, fmt.Sprintf("[%v]", []Kind{VertexDecl, FaceDecl, Eof})))
-		}
-
-		// advance to the next token
-		if !m.read() {
-			break
+			panic(fmt.Sprintf("Unexpected token (%v) expecting: %v", m.token(), fmt.Sprintf("[%v]", []Kind{VertexDecl, FaceDecl, Eof})))
 		}
 	}
 
@@ -122,8 +155,11 @@ func (m *meshLoader) Load() (err error) {
 }
 
 // Load a new mesh
-func LoadMesh(tokens <-chan Token) (m *Mesh, err error) {
-	ml := &meshLoader{nil, nil, tokens, Token{}}
+func LoadMesh(tokens <-chan *Token) (m *Mesh, err error) {
+	ml := &meshLoader{nil, nil, nil, make([]*Token,0), -1}
+	for t := range tokens {
+		ml.tokens = append(ml.tokens, t)
+	}
 	err = ml.Load()
 	m = ml.mesh
 	return
