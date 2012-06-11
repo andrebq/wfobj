@@ -7,6 +7,8 @@ import (
 func discard(ch <-chan *Token, done chan []*Token, t *testing.T) {
 	buff := make([]*Token, 0)
 	for tok := range ch {
+		// enable for debugging
+		//t.Logf("Token: %v", tok)
 		buff = append(buff, tok)
 	}
 	done <- buff
@@ -27,6 +29,7 @@ func TestParser(t *testing.T) {
 		tmp := <-done
 		if len(tmp) != len(test.tokens) {
 			t.Errorf("Expecting %v tokens but got %v", len(test.tokens), len(tmp))
+			continue
 		}
 		for i, tok := range tmp {
 			if tok.Kind != test.tokens[i].Kind {

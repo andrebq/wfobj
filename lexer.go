@@ -218,18 +218,45 @@ func (p *Parser) ReadNumberLit() {
 // Read the Face declaration supporting the format
 // f vIndex/textureIndex/normalIndex
 func (p *Parser) ReadFaceParts() {
-	for {
-		p.Discard(" ")
-		if ok, _ := p.Peek(FloatNumber); ok {
-			p.ReadNumberLit()
-			continue
-		}
-		if ok, _ := p.Peek("/"); ok {
+	p.Discard(" ")
+	
+	fn := func() {
+		p.ReadNumberLit()
+		
+		if p.NextIf("/") {
 			p.Emit("", SlashLit)
-			continue
 		}
-		break
+		
+		if p.NextIf(FloatNumber) {
+			p.PushBack()
+			p.ReadNumberLit()
+		}
+		
+		if p.NextIf("/") {
+			p.Emit("", SlashLit)
+		}
+		
+		if p.NextIf(FloatNumber) {
+			p.PushBack()
+			p.ReadNumberLit()
+		}
 	}
+	
+	// while inside a face definition
+	// the first element will always be a number
+	// in this case
+	// after detecting the number, the parser must detect
+	// if the format is vertex or vertex/texture/normal
+	// this is done by the fn function defined above
+	//
+	// when no numbers are detect
+	// just exit the loop and return for the previous flow
+	for p.NextIf(FloatNumber) {
+		p.PushBack()
+		fn()
+		p.Discard(" ")
+	}
+	
 }
 
 // Read a integer and panic if none is found
