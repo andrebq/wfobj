@@ -6,7 +6,9 @@ import (
 
 func TestMeshLoader(t *testing.T) {
 	for _, test := range testdata {
-		if test.ignore { continue }
+		if test.ignore {
+			continue
+		}
 		t.Logf("Title: %v", test.title)
 		p := NewLiteralParser(test.objlit)
 		p.Debug = &PrintState{}

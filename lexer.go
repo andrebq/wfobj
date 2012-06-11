@@ -9,6 +9,7 @@ import (
 )
 
 type Kind int
+
 const (
 	VertexDecl = Kind(iota)
 	NormalDecl
@@ -20,11 +21,11 @@ const (
 )
 
 const (
-	Number = "0123456789"
-	Minus = "-"
-	Dot = "."
+	Number       = "0123456789"
+	Minus        = "-"
+	Dot          = "."
 	SignedNumber = Minus + Number
-	FloatNumber = SignedNumber + Dot
+	FloatNumber  = SignedNumber + Dot
 )
 
 var kindNames = map[Kind]string{
@@ -32,7 +33,7 @@ var kindNames = map[Kind]string{
 	NormalDecl: "NORMAL_DECLARATION",
 	FaceDecl:   "FACE_DECLARATION",
 	NumberLit:  "NUMBER_LITERAL",
-	SlashLit: "SLASH_LITERAL",
+	SlashLit:   "SLASH_LITERAL",
 	Eof:        "EOF",
 }
 
@@ -129,12 +130,14 @@ func (p *Parser) Parse() (err error) {
 		switch p.C {
 		case 'v':
 			ok := p.NextIf(" n")
-			if !ok { panic("Expecting Vertex Decl or Normal Decl") }
+			if !ok {
+				panic("Expecting Vertex Decl or Normal Decl")
+			}
 			switch p.C {
-				case ' ':
-					p.Emit("", VertexDecl)
-				case 'n':
-					p.Emit("", NormalDecl)
+			case ' ':
+				p.Emit("", VertexDecl)
+			case 'n':
+				p.Emit("", NormalDecl)
 			}
 			p.ReadNumberList()
 		case 'f':
@@ -219,29 +222,29 @@ func (p *Parser) ReadNumberLit() {
 // f vIndex/textureIndex/normalIndex
 func (p *Parser) ReadFaceParts() {
 	p.Discard(" ")
-	
+
 	fn := func() {
 		p.ReadNumberLit()
-		
+
 		if p.NextIf("/") {
 			p.Emit("", SlashLit)
 		}
-		
+
 		if p.NextIf(FloatNumber) {
 			p.PushBack()
 			p.ReadNumberLit()
 		}
-		
+
 		if p.NextIf("/") {
 			p.Emit("", SlashLit)
 		}
-		
+
 		if p.NextIf(FloatNumber) {
 			p.PushBack()
 			p.ReadNumberLit()
 		}
 	}
-	
+
 	// while inside a face definition
 	// the first element will always be a number
 	// in this case
@@ -256,7 +259,7 @@ func (p *Parser) ReadFaceParts() {
 		fn()
 		p.Discard(" ")
 	}
-	
+
 }
 
 // Read a integer and panic if none is found

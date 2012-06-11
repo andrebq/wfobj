@@ -6,8 +6,8 @@ package wfobj
 // this just works
 
 type TestData struct {
-	title	string
-	ignore	bool
+	title  string
+	ignore bool
 	mesh   *Mesh
 	tokens []Token
 	objlit string
@@ -15,12 +15,16 @@ type TestData struct {
 
 var testdata = []TestData{
 	{
-		title: "Simple mesh",
+		title:  "Simple mesh",
 		ignore: false,
 		mesh: &Mesh{
 			[]Face{
-				Face{VertexList{Vertex{1.0, 1.0, 1.0}, Vertex{0.0, 1.0, 0.0}}, VertexList{}},
-				Face{VertexList{Vertex{0.0, 1.0, 0.0}, Vertex{1.0, 1.0, 1.0}}, VertexList{}},
+				Face{VertexList{Vertex{1.0, 1.0, 1.0}, Vertex{0.0, 1.0, 0.0}}, VertexList{
+					Vertex{1.0, 1.0, 1.0}, Vertex{1.0, 1.0, 1.0},
+				}},
+				Face{VertexList{Vertex{0.0, 1.0, 0.0}, Vertex{1.0, 1.0, 1.0}}, VertexList{
+					Vertex{0.0, 1.0, 0.0}, Vertex{1.0, 1.0, 1.0},
+				}},
 			},
 		},
 		objlit: `# comment
@@ -52,14 +56,14 @@ f 2 1
 			Token{"", FaceDecl, Position{}},
 			Token{"2", NumberLit, Position{}},
 			Token{"1", NumberLit, Position{}},
-			
+
 			Token{"", Eof, Position{}},
 		},
 	},
-	
+
 	// Mesh with normals
 	{
-		title: "Mesh with normals",
+		title:  "Mesh with normals",
 		ignore: false,
 		mesh: &Mesh{
 			[]Face{
@@ -88,13 +92,13 @@ f 2//2 1//2
 			Token{"0.0", NumberLit, Position{}},
 			Token{"1.0", NumberLit, Position{}},
 			Token{"0.0", NumberLit, Position{}},
-			
+
 			// Normal
 			Token{"", NormalDecl, Position{}},
 			Token{"0.0", NumberLit, Position{}},
 			Token{"1.0", NumberLit, Position{}},
 			Token{"0.0", NumberLit, Position{}},
-			
+
 			// Normal
 			Token{"", NormalDecl, Position{}},
 			Token{"0.0", NumberLit, Position{}},
@@ -126,7 +130,7 @@ f 2//2 1//2
 			Token{"", SlashLit, Position{}},
 			Token{"", SlashLit, Position{}},
 			Token{"1", NumberLit, Position{}},
-			
+
 			Token{"", Eof, Position{}},
 		},
 	},

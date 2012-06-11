@@ -8,9 +8,9 @@ import (
 type meshLoader struct {
 	mesh     *Mesh
 	vertices VertexList
-	normals VertexList
-	tokens []*Token
-	pos	int
+	normals  VertexList
+	tokens   []*Token
+	pos      int
 }
 
 type MeshLoadError string
@@ -25,14 +25,18 @@ func (m MeshLoadError) Error() string {
 // Read a new token from the parser
 func (m *meshLoader) next() (ok bool) {
 	m.pos++
-	if m.pos >= len(m.tokens) { return }
+	if m.pos >= len(m.tokens) {
+		return
+	}
 	ok = true
 	return
 }
 
 func (m *meshLoader) peek(k Kind) (t *Token, ok bool) {
 	npos := m.pos + 1
-	if npos >= len(m.tokens) { return }
+	if npos >= len(m.tokens) {
+		return
+	}
 	t = m.tokens[npos]
 	if k != AnyKind {
 		ok = t.Kind == k
@@ -42,8 +46,12 @@ func (m *meshLoader) peek(k Kind) (t *Token, ok bool) {
 
 // Read the current token
 func (m *meshLoader) token() *Token {
-	if m.pos < 0 { panic("Invalid position. Must be non zero") }
-	if m.pos >= len(m.tokens) { panic("Invalid position. Must be less then length") }
+	if m.pos < 0 {
+		panic("Invalid position. Must be non zero")
+	}
+	if m.pos >= len(m.tokens) {
+		panic("Invalid position. Must be less then length")
+	}
 	return m.tokens[m.pos]
 }
 
@@ -82,7 +90,7 @@ func (m *meshLoader) readFaceDecl(f *Face) {
 			m.pushBack()
 			idx := int32(m.readNumberLit())
 			f.Vertices = append(f.Vertices, m.vertices[idx-1])
-			
+
 			// texture information
 			m.next()
 			t = m.token()
@@ -92,7 +100,7 @@ func (m *meshLoader) readFaceDecl(f *Face) {
 				m.pushBack()
 				continue
 			}
-			
+
 			// normal information
 			m.next()
 			t = m.token()
@@ -155,7 +163,7 @@ func (m *meshLoader) Load() (err error) {
 
 // Load a new mesh
 func LoadMesh(tokens <-chan *Token) (m *Mesh, err error) {
-	ml := &meshLoader{nil, nil, nil, make([]*Token,0), -1}
+	ml := &meshLoader{nil, nil, nil, make([]*Token, 0), -1}
 	for t := range tokens {
 		ml.tokens = append(ml.tokens, t)
 	}
