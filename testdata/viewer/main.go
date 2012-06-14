@@ -37,6 +37,7 @@ type State struct {
 	Keys map[int]bool
 	yRot, xRot, zRot float32
 	zoom float32
+	light [4]float32
 }
 
 var (
@@ -126,6 +127,18 @@ func initGL() {
 	gl.Enable(gl.DEPTH_TEST)
 	gl.DepthFunc(gl.LEQUAL)
 	gl.Hint(gl.PERSPECTIVE_CORRECTION_HINT, gl.NICEST)
+	
+	globalState.light[0] = 0
+	globalState.light[1] = 0
+	globalState.light[2] = 2
+	globalState.light[3] = 1
+	
+	gl.Lightfv(gl.LIGHT1, gl.AMBIENT, []float32{1,1,1})
+	gl.Lightfv(gl.LIGHT1, gl.DIFFUSE, []float32{1,1,1})
+	gl.Lightfv(gl.LIGHT1, gl.POSITION, globalState.light[:])
+	gl.Enable(gl.LIGHT1)
+	
+	gl.Enable(gl.LIGHTING)
 }
 
 func handleInput() {
@@ -167,6 +180,7 @@ func drawScene() {
 	gl.Clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
 
 	gl.LoadIdentity()
+	
 	gl.Translatef(0, 0, -20)
 	gl.Rotatef(globalState.xRot, 1, 0, 0)
 	gl.Rotatef(globalState.yRot, 0, 1, 0)
@@ -189,6 +203,10 @@ func drawScene() {
 		}
 		
 		face := &mesh.Faces[i]
+		if len(face.Normals) > 0 {
+			n := &face.Normals[0]
+		gl.Normal3f(n.X, n.Y, n.Z)
+		}
 		for j, _ := range face.Vertices {
 			v := &face.Vertices[j]
 			gl.Vertex3f(v.X, v.Y, v.Z)
