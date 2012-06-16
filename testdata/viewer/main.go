@@ -8,14 +8,14 @@
 package main
 
 import (
+	"flag"
 	"fmt"
-	"github.com/jteeuwen/glfw"
+	"github.com/andrebq/wfobj"
 	"github.com/banthar/gl"
 	"github.com/banthar/glu"
-	"github.com/andrebq/wfobj"
+	"github.com/jteeuwen/glfw"
 	"math/rand"
 	"os"
-	"flag"
 )
 
 const (
@@ -28,20 +28,20 @@ var (
 	trisAngle float32
 	quadAngle float32
 	running   bool
-	mesh *wfobj.Mesh
-	faceColor = map[int][]float32{}
-	speed float32 = 0.5
+	mesh      *wfobj.Mesh
+	faceColor         = map[int][]float32{}
+	speed     float32 = 0.5
 )
 
 type State struct {
-	Keys map[int]bool
+	Keys             map[int]bool
 	yRot, xRot, zRot float32
-	zoom float32
-	light [4]float32
+	zoom             float32
+	light            [4]float32
 }
 
 var (
-	globalState = &State{Keys:make(map[int]bool), zoom:1,}
+	globalState = &State{Keys: make(map[int]bool), zoom: 1}
 )
 
 func main() {
@@ -51,7 +51,7 @@ func main() {
 		fmt.Fprintf(os.Stderr, "[e] %v\n", err)
 		return
 	}
-	
+
 	if len(flag.Args()) == 0 {
 		old := flag.Usage
 		flag.Usage = func() {
@@ -61,7 +61,7 @@ func main() {
 		flag.Usage()
 		return
 	}
-	
+
 	mesh, err = wfobj.LoadMeshFromFile(flag.Args()[0])
 	if err != nil {
 		flag.Usage()
@@ -110,10 +110,10 @@ func onKey(key, state int) {
 	switch key {
 	case glfw.KeyEsc:
 		running = false
-	case glfw.KeyLeft, glfw.KeyRight, glfw.KeyUp, glfw.KeyDown, KeyW, KeyS, KeyPlus, KeyMinus,glfw.KeyPagedown, glfw.KeyPageup:
+	case glfw.KeyLeft, glfw.KeyRight, glfw.KeyUp, glfw.KeyDown, KeyW, KeyS, KeyPlus, KeyMinus, glfw.KeyPagedown, glfw.KeyPageup:
 		globalState.Keys[key] = state == glfw.KeyPress
 	default:
-		print("Key: ", key, " is pressed? ",state == glfw.KeyPress)
+		print("Key: ", key, " is pressed? ", state == glfw.KeyPress)
 	}
 }
 
@@ -127,17 +127,17 @@ func initGL() {
 	gl.Enable(gl.DEPTH_TEST)
 	gl.DepthFunc(gl.LEQUAL)
 	gl.Hint(gl.PERSPECTIVE_CORRECTION_HINT, gl.NICEST)
-	
+
 	globalState.light[0] = 0
-	globalState.light[1] = 0
-	globalState.light[2] = 2
+	globalState.light[1] = 20
+	globalState.light[2] = -10
 	globalState.light[3] = 1
-	
-	gl.Lightfv(gl.LIGHT1, gl.AMBIENT, []float32{1,1,1})
-	gl.Lightfv(gl.LIGHT1, gl.DIFFUSE, []float32{1,1,1})
+
+	gl.Lightfv(gl.LIGHT1, gl.AMBIENT, []float32{1, 1, 1})
+	gl.Lightfv(gl.LIGHT1, gl.DIFFUSE, []float32{1, 1, 1})
 	gl.Lightfv(gl.LIGHT1, gl.POSITION, globalState.light[:])
 	gl.Enable(gl.LIGHT1)
-	
+
 	gl.Enable(gl.LIGHTING)
 }
 
@@ -172,21 +172,28 @@ func handleInput() {
 	if globalState.Keys[glfw.KeyPagedown] {
 		globalState.zoom -= 0.5
 	}
-	if globalState.zoom < 1 { globalState.zoom = 1 }
-	if speed < 0.5 { speed = 0.5 } else if speed > 2 { speed = 2 }
+	if globalState.zoom < 1 {
+		globalState.zoom = 1
+	}
+	if speed < 0.5 {
+		speed = 0.5
+	} else if speed > 2 {
+		speed = 2
+	}
 }
 
 func drawScene() {
 	gl.Clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
 
 	gl.LoadIdentity()
-	
+
 	gl.Translatef(0, 0, -20)
+
 	gl.Rotatef(globalState.xRot, 1, 0, 0)
 	gl.Rotatef(globalState.yRot, 0, 1, 0)
 	gl.Rotatef(globalState.zRot, 0, 0, 1)
-	
-	if (globalState.zoom != 1) {
+
+	if globalState.zoom != 1 {
 		gl.Scalef(globalState.zoom, globalState.zoom, globalState.zoom)
 	}
 
@@ -201,14 +208,15 @@ func drawScene() {
 			faceColor[i][2] = rand.Float32()
 			gl.Color3f(faceColor[i][0], faceColor[i][1], faceColor[i][2])
 		}
-		
+
 		face := &mesh.Faces[i]
-		if len(face.Normals) > 0 {
-			n := &face.Normals[0]
-		gl.Normal3f(n.X, n.Y, n.Z)
-		}
 		for j, _ := range face.Vertices {
-			v := &face.Vertices[j]
+			var v *wfobj.Vertex
+			if len(face.Normals) > 0 {
+				v = &face.Normals[j]
+				gl.Normal3f(v.X, v.Y, v.Z)
+			}
+			v = &face.Vertices[j]
 			gl.Vertex3f(v.X, v.Y, v.Z)
 		}
 	}
