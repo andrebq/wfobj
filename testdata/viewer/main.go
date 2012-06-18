@@ -36,12 +36,13 @@ var (
 type State struct {
 	Keys             map[int]bool
 	yRot, xRot, zRot float32
-	zoom             float32
+	speed            float32
 	light            [4]float32
+	wheel            float32
 }
 
 var (
-	globalState = &State{Keys: make(map[int]bool), zoom: 1}
+	globalState = &State{Keys: make(map[int]bool), speed: 1}
 )
 
 func main() {
@@ -83,6 +84,7 @@ func main() {
 	glfw.SetWindowSizeCallback(onResize)
 	glfw.SetKeyCallback(onKey)
 	glfw.SetCharCallback(onChar)
+	glfw.SetMouseWheelCallback(onWheel)
 
 	initGL()
 
@@ -115,6 +117,10 @@ func onKey(key, state int) {
 	default:
 		print("Key: ", key, " is pressed? ", state == glfw.KeyPress)
 	}
+}
+
+func onWheel(delta int) {
+	globalState.wheel = float32(delta)
 }
 
 func onChar(key, state int) {
@@ -167,13 +173,13 @@ func handleInput() {
 		speed -= 0.5
 	}
 	if globalState.Keys[glfw.KeyPageup] {
-		globalState.zoom += 0.5
+		globalState.speed += 0.5
 	}
 	if globalState.Keys[glfw.KeyPagedown] {
-		globalState.zoom -= 0.5
+		globalState.speed -= 0.5
 	}
-	if globalState.zoom < 1 {
-		globalState.zoom = 1
+	if globalState.speed < 1 {
+		globalState.speed = 1
 	}
 	if speed < 0.5 {
 		speed = 0.5
@@ -187,14 +193,14 @@ func drawScene() {
 
 	gl.LoadIdentity()
 
-	gl.Translatef(0, 0, -20)
+	gl.Translatef(0, 0, -20+globalState.wheel*globalState.speed)
 
 	gl.Rotatef(globalState.xRot, 1, 0, 0)
 	gl.Rotatef(globalState.yRot, 0, 1, 0)
 	gl.Rotatef(globalState.zRot, 0, 0, 1)
 
-	if globalState.zoom != 1 {
-		gl.Scalef(globalState.zoom, globalState.zoom, globalState.zoom)
+	if globalState.speed != 1 {
+		gl.Scalef(globalState.speed, globalState.speed, globalState.speed)
 	}
 
 	gl.Begin(gl.QUADS)
